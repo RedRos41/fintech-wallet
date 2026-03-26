@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Usuarios - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people me-2"></i>Usuarios</h2>
+        <a th:href="@{/users/new}" class="btn btn-accent">
+            <i class="bi bi-plus-circle me-1"></i>Nuevo Usuario
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Cedula</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Telefono</th>
+                        <th>Nivel</th>
+                        <th>Puntos</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="user : ${users}">
+                        <td th:text="${user.id}"></td>
+                        <td th:text="${user.name}"></td>
+                        <td th:text="${user.email}"></td>
+                        <td th:text="${user.phone}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${user.level.name() == 'BRONZE' ? 'badge-bronze' :
+                                                    user.level.name() == 'SILVER' ? 'badge-silver' :
+                                                    user.level.name() == 'GOLD' ? 'badge-gold' :
+                                                    'badge-platinum'}"
+                                  th:text="${user.level}"></span>
+                        </td>
+                        <td th:text="${user.points}"></td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a th:href="@{/users/{id}(id=${user.id})}"
+                                   class="btn btn-outline-primary" title="Ver">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a th:href="@{/users/{id}/edit(id=${user.id})}"
+                                   class="btn btn-outline-warning" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form th:action="@{/users/{id}/delete(id=${user.id})}"
+                                      method="post" class="d-inline"
+                                      onsubmit="return confirm('Seguro que desea eliminar este usuario?');">
+                                    <button type="submit" class="btn btn-outline-danger" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(users)}">
+                        <td colspan="7" class="text-center text-muted py-3">No hay usuarios registrados</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

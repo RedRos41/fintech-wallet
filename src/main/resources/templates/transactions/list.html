@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Transacciones - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-arrow-left-right me-2"></i>Transacciones</h2>
+        <a th:href="@{/transactions/new}" class="btn btn-accent">
+            <i class="bi bi-plus-circle me-1"></i>Nueva Transaccion
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form th:action="@{/transactions}" method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="typeFilter" class="form-label">Tipo</label>
+                    <select id="typeFilter" name="typeFilter" class="form-select">
+                        <option value="">-- Todos --</option>
+                        <option th:each="t : ${transactionTypes}"
+                                th:value="${t.name()}"
+                                th:text="${t}"
+                                th:selected="${typeFilter != null and typeFilter == t.name()}"></option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="statusFilter" class="form-label">Estado</label>
+                    <select id="statusFilter" name="statusFilter" class="form-select">
+                        <option value="">-- Todos --</option>
+                        <option value="COMPLETED" th:selected="${statusFilter == 'COMPLETED'}">COMPLETED</option>
+                        <option value="PENDING" th:selected="${statusFilter == 'PENDING'}">PENDING</option>
+                        <option value="REVERSED" th:selected="${statusFilter == 'REVERSED'}">REVERSED</option>
+                        <option value="REJECTED" th:selected="${statusFilter == 'REJECTED'}">REJECTED</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de transacciones -->
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Monto</th>
+                        <th>Comision</th>
+                        <th>Estado</th>
+                        <th>Origen</th>
+                        <th>Destino</th>
+                        <th>Puntos</th>
+                        <th>Descripcion</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="tx : ${transactions}">
+                        <td><code th:text="${#strings.abbreviate(tx.id, 12)}"></code></td>
+                        <td th:text="${#temporals.format(tx.date, 'dd/MM/yyyy HH:mm')}"></td>
+                        <td th:text="${tx.type}"></td>
+                        <td th:text="'$ ' + ${#numbers.formatDecimal(tx.amount, 0, 'COMMA', 2, 'POINT')}"></td>
+                        <td th:text="'$ ' + ${#numbers.formatDecimal(tx.commissionCharged, 0, 'COMMA', 2, 'POINT')}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${tx.status.name() == 'COMPLETED' ? 'bg-success' :
+                                                    tx.status.name() == 'PENDING' ? 'bg-warning text-dark' :
+                                                    tx.status.name() == 'REVERSED' ? 'bg-info' :
+                                                    'bg-danger'}"
+                                  th:text="${tx.status}"></span>
+                        </td>
+                        <td><code th:text="${#strings.abbreviate(tx.sourceWalletCode, 12)}"></code></td>
+                        <td>
+                            <code th:if="${tx.targetWalletCode != null and !tx.targetWalletCode.isEmpty()}"
+                                  th:text="${#strings.abbreviate(tx.targetWalletCode, 12)}"></code>
+                            <span th:if="${tx.targetWalletCode == null or tx.targetWalletCode.isEmpty()}"
+                                  class="text-muted">-</span>
+                        </td>
+                        <td th:text="${tx.pointsGenerated}"></td>
+                        <td th:text="${tx.description}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(transactions)}">
+                        <td colspan="10" class="text-center text-muted py-3">No hay transacciones registradas</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revertir ultima operacion -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-arrow-counterclockwise me-1"></i>Revertir Ultima Operacion</h5>
+        </div>
+        <div class="card-body">
+            <form class="row g-3 align-items-end" method="post" id="reverseForm">
+                <div class="col-md-6">
+                    <label for="reverseUserId" class="form-label">Cedula del Usuario</label>
+                    <input type="text" id="reverseUserId" class="form-control"
+                           placeholder="Ingrese la cedula del usuario" required/>
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Revertir
+                    </button>
+                </div>
+            </form>
+            <script>
+                (function() {
+                    var form = document.getElementById('reverseForm');
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        var userId = document.getElementById('reverseUserId').value.trim();
+                        if (userId) {
+                            form.action = '/transactions/reverse/' + encodeURIComponent(userId);
+                            form.submit();
+                        }
+                    });
+                })();
+            </script>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

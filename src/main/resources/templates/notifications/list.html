@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Notificaciones - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <h2 class="mb-4"><i class="bi bi-bell me-2"></i>Notificaciones y Auditoria</h2>
+
+    <!-- Notificaciones -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-bell me-1"></i>Notificaciones</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Usuario</th>
+                        <th>Mensaje</th>
+                        <th>Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="n : ${notifications}">
+                        <td th:text="${#temporals.format(n.date, 'dd/MM/yyyy HH:mm')}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${n.type.name() == 'LOW_BALANCE' ? 'bg-warning text-dark' :
+                                                    n.type.name() == 'SECURITY_ALERT' ? 'bg-danger' :
+                                                    n.type.name() == 'OPERATION_REJECTED' ? 'bg-danger' :
+                                                    n.type.name() == 'LEVEL_UP' ? 'bg-success' :
+                                                    n.type.name() == 'BENEFIT_REDEEMED' ? 'bg-info' :
+                                                    'bg-primary'}"
+                                  th:text="${n.type}"></span>
+                        </td>
+                        <td th:text="${n.userId}"></td>
+                        <td th:text="${n.message}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${n.read ? 'bg-secondary' : 'bg-primary'}"
+                                  th:text="${n.read ? 'Leida' : 'No leida'}"></span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(notifications)}">
+                        <td colspan="5" class="text-center text-muted py-3">No hay notificaciones pendientes</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eventos de Auditoria -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-shield-check me-1"></i>Eventos de Auditoria</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Transaccion</th>
+                        <th>Nivel de Riesgo</th>
+                        <th>Descripcion</th>
+                        <th>Detalles</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="event : ${auditEvents}">
+                        <td th:text="${#temporals.format(event.date, 'dd/MM/yyyy HH:mm')}"></td>
+                        <td th:text="${event.userId}"></td>
+                        <td><code th:text="${#strings.abbreviate(event.transactionId, 12)}"></code></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${event.riskLevel.name() == 'LOW' ? 'bg-success' :
+                                                    event.riskLevel.name() == 'MEDIUM' ? 'bg-warning text-dark' :
+                                                    event.riskLevel.name() == 'HIGH' ? 'bg-danger' :
+                                                    'bg-dark'}"
+                                  th:text="${event.riskLevel}"></span>
+                        </td>
+                        <td th:text="${event.description}"></td>
+                        <td><small th:text="${event.details}"></small></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(auditEvents)}">
+                        <td colspan="6" class="text-center text-muted py-3">No hay eventos de auditoria</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

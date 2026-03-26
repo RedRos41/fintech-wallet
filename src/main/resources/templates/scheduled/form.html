@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Nueva Operacion Programada - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-clock-history me-2"></i>Nueva Operacion Programada</h2>
+        <a th:href="@{/scheduled}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form th:action="@{/scheduled/create}" method="post">
+                <div class="mb-3">
+                    <label for="type" class="form-label">Tipo de Transaccion</label>
+                    <select id="type" name="type" class="form-select" required>
+                        <option value="">-- Seleccionar tipo --</option>
+                        <option th:each="t : ${transactionTypes}"
+                                th:value="${t.name()}"
+                                th:text="${t}"></option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="sourceWalletCode" class="form-label">Billetera Origen</label>
+                    <select id="sourceWalletCode" name="sourceWalletCode" class="form-select" required>
+                        <option value="">-- Seleccionar billetera --</option>
+                        <th:block th:each="user : ${users}">
+                            <optgroup th:label="${user.name + ' (' + user.id + ')'}">
+                                <option th:each="w : ${user.wallets.toJavaList()}"
+                                        th:value="${w.code}"
+                                        th:text="${w.name + ' (' + #strings.abbreviate(w.code, 12) + ')'}"></option>
+                            </optgroup>
+                        </th:block>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="targetWalletGroup">
+                    <label for="targetWalletCode" class="form-label">Billetera Destino (opcional, solo para transferencias)</label>
+                    <select id="targetWalletCode" name="targetWalletCode" class="form-select">
+                        <option value="">-- Seleccionar billetera --</option>
+                        <th:block th:each="user : ${users}">
+                            <optgroup th:label="${user.name + ' (' + user.id + ')'}">
+                                <option th:each="w : ${user.wallets.toJavaList()}"
+                                        th:value="${w.code}"
+                                        th:text="${w.name + ' (' + #strings.abbreviate(w.code, 12) + ')'}"></option>
+                            </optgroup>
+                        </th:block>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="amount" class="form-label">Monto</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" id="amount" name="amount" class="form-control"
+                               step="0.01" min="0.01" placeholder="0.00" required/>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="scheduledDate" class="form-label">Fecha y Hora Programada</label>
+                    <input type="datetime-local" id="scheduledDate" name="scheduledDate"
+                           class="form-control" required/>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Descripcion</label>
+                    <textarea id="description" name="description" class="form-control"
+                              rows="2" placeholder="Descripcion de la operacion"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-1"></i>Programar Operacion
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const typeSelect = document.getElementById('type');
+            const targetGroup = document.getElementById('targetWalletGroup');
+            const targetSelect = document.getElementById('targetWalletCode');
+
+            function toggleTarget() {
+                if (typeSelect.value === 'TRANSFER') {
+                    targetGroup.style.display = '';
+                    targetSelect.required = true;
+                } else {
+                    targetGroup.style.display = 'none';
+                    targetSelect.required = false;
+                    targetSelect.value = '';
+                }
+            }
+
+            typeSelect.addEventListener('change', toggleTarget);
+            toggleTarget();
+        })();
+    </script>
+
+</section>
+</body>
+</html>

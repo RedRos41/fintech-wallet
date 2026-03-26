@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Nueva Transaccion - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-arrow-left-right me-2"></i>Nueva Transaccion</h2>
+        <a th:href="@{/transactions}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form th:action="@{/transactions/execute}" method="post">
+                <div class="mb-3">
+                    <label class="form-label">Tipo de Transaccion</label>
+                    <div>
+                        <div th:each="t : ${transactionTypes}" class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="type"
+                                   th:id="${'type_' + t.name()}"
+                                   th:value="${t.name()}" required/>
+                            <label class="form-check-label" th:for="${'type_' + t.name()}" th:text="${t}"></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="sourceWalletCode" class="form-label">Billetera Origen</label>
+                    <select id="sourceWalletCode" name="sourceWalletCode" class="form-select" required>
+                        <option value="">-- Seleccionar billetera --</option>
+                        <th:block th:each="user : ${users}">
+                            <optgroup th:label="${user.name + ' (' + user.id + ')'}">
+                                <option th:each="w : ${user.wallets.toJavaList()}"
+                                        th:value="${w.code}"
+                                        th:text="${w.name + ' - $ ' + #numbers.formatDecimal(w.balance, 0, 'COMMA', 2, 'POINT')}"></option>
+                            </optgroup>
+                        </th:block>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="targetWalletGroup">
+                    <label for="targetWalletCode" class="form-label">Billetera Destino (solo para transferencias)</label>
+                    <select id="targetWalletCode" name="targetWalletCode" class="form-select">
+                        <option value="">-- Seleccionar billetera --</option>
+                        <th:block th:each="user : ${users}">
+                            <optgroup th:label="${user.name + ' (' + user.id + ')'}">
+                                <option th:each="w : ${user.wallets.toJavaList()}"
+                                        th:value="${w.code}"
+                                        th:text="${w.name + ' - $ ' + #numbers.formatDecimal(w.balance, 0, 'COMMA', 2, 'POINT')}"></option>
+                            </optgroup>
+                        </th:block>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="amount" class="form-label">Monto</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" id="amount" name="amount" class="form-control"
+                               step="0.01" min="0.01" placeholder="0.00" required/>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-1"></i>Ejecutar Transaccion
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const radios = document.querySelectorAll('input[name="type"]');
+            const targetGroup = document.getElementById('targetWalletGroup');
+            const targetSelect = document.getElementById('targetWalletCode');
+
+            function toggleTarget() {
+                const selected = document.querySelector('input[name="type"]:checked');
+                if (selected && selected.value === 'TRANSFER') {
+                    targetGroup.style.display = '';
+                    targetSelect.required = true;
+                } else {
+                    targetGroup.style.display = 'none';
+                    targetSelect.required = false;
+                    targetSelect.value = '';
+                }
+            }
+
+            radios.forEach(function(r) { r.addEventListener('change', toggleTarget); });
+            toggleTarget();
+        })();
+    </script>
+
+</section>
+</body>
+</html>

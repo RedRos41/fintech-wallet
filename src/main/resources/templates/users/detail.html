@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Detalle Usuario - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-person me-2"></i>Detalle de Usuario</h2>
+        <div class="d-flex gap-2">
+            <a th:href="@{/users/{id}/edit(id=${user.id})}" class="btn btn-outline-warning">
+                <i class="bi bi-pencil me-1"></i>Editar
+            </a>
+            <a th:href="@{/users}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- User info card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th class="text-muted" style="width: 120px;">Cedula</th>
+                            <td th:text="${user.id}"></td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Nombre</th>
+                            <td th:text="${user.name}"></td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Email</th>
+                            <td th:text="${user.email}"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th class="text-muted" style="width: 120px;">Telefono</th>
+                            <td th:text="${user.phone}"></td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Nivel</th>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${user.level.name() == 'BRONZE' ? 'badge-bronze' :
+                                                        user.level.name() == 'SILVER' ? 'badge-silver' :
+                                                        user.level.name() == 'GOLD' ? 'badge-gold' :
+                                                        'badge-platinum'}"
+                                      th:text="${user.level}"></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Puntos</th>
+                            <td>
+                                <span class="fw-bold text-primary" th:text="${user.points}"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallets -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-wallet me-1"></i>Billeteras</span>
+            <a th:href="@{/wallets/new(userId=${user.id})}" class="btn btn-sm btn-accent">
+                <i class="bi bi-plus-circle me-1"></i>Crear Billetera
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Codigo</th>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Saldo</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="wallet : ${wallets}">
+                        <td>
+                            <small th:text="${wallet.code.substring(0, 8) + '...'}"></small>
+                        </td>
+                        <td th:text="${wallet.name}"></td>
+                        <td>
+                            <span class="badge bg-info text-dark" th:text="${wallet.type}"></span>
+                        </td>
+                        <td th:text="${'$' + #numbers.formatDecimal(wallet.balance, 1, 2)}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${wallet.active ? 'bg-success' : 'bg-secondary'}"
+                                  th:text="${wallet.active ? 'Activa' : 'Inactiva'}"></span>
+                        </td>
+                        <td>
+                            <a th:href="@{/wallets/{code}(code=${wallet.code})}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>Ver
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(wallets)}">
+                        <td colspan="6" class="text-center text-muted py-3">Este usuario no tiene billeteras</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Redeemed benefits -->
+    <div class="card" th:if="${!#lists.isEmpty(benefits)}">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-gift me-1"></i>Beneficios Canjeados
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Beneficio</th>
+                        <th>Descripcion</th>
+                        <th>Puntos</th>
+                        <th>Fecha de Canje</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="benefit : ${benefits}">
+                        <td th:text="${benefit.name}"></td>
+                        <td th:text="${benefit.description}"></td>
+                        <td th:text="${benefit.pointsCost}"></td>
+                        <td th:text="${benefit.redeemedDate != null ? #temporals.format(benefit.redeemedDate, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

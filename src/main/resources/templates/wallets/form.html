@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Nueva Billetera - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-wallet me-2"></i>Nueva Billetera</h2>
+        <a th:href="@{/wallets}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form th:action="@{/wallets/create}" method="post">
+                <div class="mb-3">
+                    <label for="ownerId" class="form-label">Propietario</label>
+                    <select id="ownerId" name="ownerId" class="form-select" required>
+                        <option value="">-- Seleccionar usuario --</option>
+                        <option th:each="user : ${users}"
+                                th:value="${user.id}"
+                                th:text="${user.name + ' (' + user.id + ')'}"
+                                th:selected="${userId != null and userId == user.id}"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nombre de la billetera</label>
+                    <input type="text" id="name" name="name" class="form-control"
+                           placeholder="Ej: Billetera principal" required/>
+                </div>
+                <div class="mb-3">
+                    <label for="type" class="form-label">Tipo de billetera</label>
+                    <select id="type" name="type" class="form-select" required>
+                        <option value="">-- Seleccionar tipo --</option>
+                        <option th:each="wt : ${walletTypes}"
+                                th:value="${wt}"
+                                th:text="${wt}"></option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-1"></i>Crear Billetera
+                </button>
+            </form>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Recompensas - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <h2 class="mb-4"><i class="bi bi-gift me-2"></i>Recompensas</h2>
+
+    <!-- Ranking de puntos -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-trophy me-1"></i>Ranking de Puntos</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Usuario ID</th>
+                        <th>Puntos</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="entry, iterStat : ${ranking}">
+                        <td>
+                            <span class="badge bg-dark" th:text="${iterStat.count}"></span>
+                        </td>
+                        <td th:text="${entry.userId}"></td>
+                        <td>
+                            <span class="fw-bold" th:text="${entry.points}"></span>
+                        </td>
+                        <td>
+                            <a th:href="@{/rewards/{id}(id=${entry.userId})}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>Ver detalle
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(ranking)}">
+                        <td colspan="4" class="text-center text-muted py-3">No hay datos en el ranking</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catalogo de beneficios -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-bag-heart me-1"></i>Catalogo de Beneficios</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripcion</th>
+                        <th>Costo en Puntos</th>
+                        <th>Canjear</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="benefit : ${benefits}">
+                        <td th:text="${benefit.name}"></td>
+                        <td th:text="${benefit.description}"></td>
+                        <td>
+                            <span class="badge bg-primary" th:text="${benefit.pointsCost}"></span>
+                        </td>
+                        <td>
+                            <form th:action="@{/rewards/redeem}" method="post" class="d-flex align-items-center gap-2">
+                                <input type="hidden" name="benefitId" th:value="${benefit.id}"/>
+                                <select name="userId" class="form-select form-select-sm" style="width: auto;" required>
+                                    <option value="">Usuario...</option>
+                                    <option th:each="entry : ${ranking}"
+                                            th:value="${entry.userId}"
+                                            th:text="${entry.userId}"></option>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-gift me-1"></i>Canjear
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(benefits)}">
+                        <td colspan="4" class="text-center text-muted py-3">No hay beneficios disponibles</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

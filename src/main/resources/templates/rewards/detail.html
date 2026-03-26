@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Detalle Recompensas - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-gift me-2"></i>Recompensas de <span th:text="${user.name}"></span></h2>
+        <a th:href="@{/rewards}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver al Ranking
+        </a>
+    </div>
+
+    <!-- Tarjeta de puntos -->
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <h4 th:text="${user.name}"></h4>
+            <p class="text-muted mb-2" th:text="'Cedula: ' + ${user.id}"></p>
+            <div class="mb-3">
+                <span class="badge fs-5"
+                      th:classappend="${user.level.name() == 'BRONZE' ? 'badge-bronze' :
+                                        user.level.name() == 'SILVER' ? 'badge-silver' :
+                                        user.level.name() == 'GOLD' ? 'badge-gold' :
+                                        'badge-platinum'}"
+                      th:text="${user.level}"></span>
+            </div>
+            <h3 class="mb-3">
+                <span th:text="${user.points}"></span> puntos
+            </h3>
+            <!-- Barra de progreso al siguiente nivel -->
+            <div th:if="${user.level.name() != 'PLATINUM'}">
+                <small class="text-muted">
+                    Progreso al siguiente nivel
+                    (<span th:text="${user.level.maxPoints + 1}"></span> puntos)
+                </small>
+                <div class="progress mt-1" style="height: 20px;">
+                    <div class="progress-bar bg-success" role="progressbar"
+                         th:style="'width: ' + ${(user.points - user.level.minPoints) * 100 / (user.level.maxPoints - user.level.minPoints + 1)} + '%'"
+                         th:text="${user.points + ' / ' + (user.level.maxPoints + 1)}">
+                    </div>
+                </div>
+            </div>
+            <div th:if="${user.level.name() == 'PLATINUM'}">
+                <small class="text-muted">Nivel maximo alcanzado</small>
+                <div class="progress mt-1" style="height: 20px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%">
+                        MAX
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catalogo de beneficios para canjear -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-bag-heart me-1"></i>Canjear Beneficio</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripcion</th>
+                        <th>Costo en Puntos</th>
+                        <th>Accion</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="benefit : ${benefits}">
+                        <td th:text="${benefit.name}"></td>
+                        <td th:text="${benefit.description}"></td>
+                        <td>
+                            <span class="badge bg-primary" th:text="${benefit.pointsCost}"></span>
+                        </td>
+                        <td>
+                            <form th:action="@{/rewards/redeem}" method="post" class="d-inline">
+                                <input type="hidden" name="userId" th:value="${user.id}"/>
+                                <input type="hidden" name="benefitId" th:value="${benefit.id}"/>
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        th:disabled="${user.points < benefit.pointsCost}">
+                                    <i class="bi bi-gift me-1"></i>Canjear
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(benefits)}">
+                        <td colspan="4" class="text-center text-muted py-3">No hay beneficios disponibles</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de beneficios canjeados -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-clock-history me-1"></i>Beneficios Canjeados</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripcion</th>
+                        <th>Costo en Puntos</th>
+                        <th>Fecha de Canje</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="benefit : ${redeemedBenefits}">
+                        <td th:text="${benefit.name}"></td>
+                        <td th:text="${benefit.description}"></td>
+                        <td th:text="${benefit.pointsCost}"></td>
+                        <td th:text="${benefit.redeemedDate != null ? #temporals.format(benefit.redeemedDate, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(redeemedBenefits)}">
+                        <td colspan="4" class="text-center text-muted py-3">No se han canjeado beneficios</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

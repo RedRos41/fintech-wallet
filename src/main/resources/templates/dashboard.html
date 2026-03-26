@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Dashboard - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <h2 class="mb-4"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+
+    <!-- Stat cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card position-relative">
+                <div class="card-body">
+                    <i class="bi bi-people-fill stat-icon"></i>
+                    <div class="stat-label">Total Usuarios</div>
+                    <div class="stat-value" th:text="${totalUsers}">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card position-relative">
+                <div class="card-body">
+                    <i class="bi bi-wallet-fill stat-icon"></i>
+                    <div class="stat-label">Total Billeteras</div>
+                    <div class="stat-value" th:text="${totalWallets}">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card position-relative">
+                <div class="card-body">
+                    <i class="bi bi-arrow-left-right stat-icon"></i>
+                    <div class="stat-label">Total Transacciones</div>
+                    <div class="stat-value" th:text="${totalTransactions}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Recent transactions -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-clock-history me-1"></i>Ultimas 10 Transacciones
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="tx : ${recentTransactions}">
+                                <td th:text="${#temporals.format(tx.date, 'dd/MM/yyyy HH:mm')}"></td>
+                                <td>
+                                    <span class="badge bg-secondary" th:text="${tx.type}"></span>
+                                </td>
+                                <td th:text="${#numbers.formatDecimal(tx.amount, 1, 2)}"></td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${tx.status.name() == 'COMPLETED' ? 'badge-completed' :
+                                                            tx.status.name() == 'PENDING' ? 'badge-pending' :
+                                                            tx.status.name() == 'REVERSED' ? 'badge-reversed' :
+                                                            'badge-rejected'}"
+                                          th:text="${tx.status}"></span>
+                                </td>
+                                <td>
+                                    <small th:text="${tx.sourceWalletCode != null ? tx.sourceWalletCode.substring(0, 8) + '...' : '-'}"></small>
+                                </td>
+                                <td>
+                                    <small th:text="${tx.targetWalletCode != null ? tx.targetWalletCode.substring(0, 8) + '...' : '-'}"></small>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(recentTransactions)}">
+                                <td colspan="6" class="text-center text-muted py-3">No hay transacciones registradas</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active alerts -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Alertas Activas
+                </div>
+                <div class="card-body alerts-panel">
+                    <div th:each="alert : ${alerts}"
+                         class="alert-item"
+                         th:classappend="${alert.riskLevel.name() == 'CRITICAL' ? 'risk-critical' : 'risk-high'}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge"
+                                  th:classappend="${alert.riskLevel.name() == 'CRITICAL' ? 'badge-critical' : 'badge-high'}"
+                                  th:text="${alert.riskLevel}"></span>
+                            <small class="text-muted"
+                                   th:text="${#temporals.format(alert.date, 'dd/MM HH:mm')}"></small>
+                        </div>
+                        <div class="fw-semibold" th:text="${alert.description}"></div>
+                        <small class="text-muted" th:text="${alert.details}"></small>
+                    </div>
+                    <div th:if="${#lists.isEmpty(alerts)}" class="text-center text-muted py-3">
+                        <i class="bi bi-shield-check fs-3 d-block mb-2"></i>
+                        Sin alertas activas
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

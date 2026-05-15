@@ -113,8 +113,11 @@ public class WalletController {
         try {
             Wallet wallet = walletService.findWalletByCode(code);
             model.addAttribute("wallet", wallet);
-            model.addAttribute("transactions",
-                    wallet.getTransactionHistory().toJavaList());
+            java.util.List<com.uniquindio.fintech.model.Transaction> txs =
+                    new java.util.ArrayList<>(
+                            wallet.getTransactionHistory().toJavaList());
+            txs.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+            model.addAttribute("transactions", txs);
             return "wallets/detail";
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());

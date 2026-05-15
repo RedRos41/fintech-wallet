@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}" lang="es">
+<head>
+    <title>Benchmark de Estructuras - Fintech Wallet</title>
+</head>
+<body>
+<section layout:fragment="content">
+
+    <h2 class="mb-4"><i class="bi bi-speedometer me-2"></i>Comparacion de rendimiento entre estructuras</h2>
+
+    <div class="card mb-4 border-secondary">
+        <div class="card-body">
+            <p class="mb-2 text-muted">
+                Cada escenario ejecuta una operacion equivalente sobre dos estructuras de datos
+                distintas implementadas en el proyecto y mide el tiempo en nanosegundos.
+                Los datos se generan en memoria al ejecutar el benchmark.
+            </p>
+            <form method="get" th:action="@{/benchmark}" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Tamano de la muestra (n)</label>
+                    <input type="number" name="n" class="form-control"
+                           th:value="${n}" min="100" max="50000" step="100"/>
+                    <small class="text-muted">Min 100, max 50.000</small>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-play-fill me-1"></i>Ejecutar benchmark
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Resultados (n = <span th:text="${n}"></span>)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Escenario</th>
+                        <th>Estructura A</th>
+                        <th>Tiempo A (ns)</th>
+                        <th>Estructura B</th>
+                        <th>Tiempo B (ns)</th>
+                        <th>Ganadora</th>
+                        <th>Speedup</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${results}">
+                        <td th:text="${r.scenario}"></td>
+                        <td><code th:text="${r.structureA}"></code></td>
+                        <td th:text="${#numbers.formatInteger(r.timeA, 0, 'COMMA')}"></td>
+                        <td><code th:text="${r.structureB}"></code></td>
+                        <td th:text="${#numbers.formatInteger(r.timeB, 0, 'COMMA')}"></td>
+                        <td>
+                            <span class="badge bg-success" th:text="${r.winner}"></span>
+                        </td>
+                        <td th:text="${#numbers.formatDecimal(r.speedup, 1, 2) + 'x'}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(results)}">
+                        <td colspan="7" class="text-center text-muted py-3">Sin datos</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

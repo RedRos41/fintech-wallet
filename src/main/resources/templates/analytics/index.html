@@ -10,6 +10,43 @@
 
     <h2 class="mb-4"><i class="bi bi-graph-up me-2"></i>Analitica</h2>
 
+    <!-- Resumen del periodo -->
+    <div class="card mb-4 border-info">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-calendar-range me-1"></i>Resumen del periodo</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" th:action="@{/analytics}" class="row g-3 align-items-end mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Desde</label>
+                    <input type="datetime-local" name="from" class="form-control"
+                           th:value="${#temporals.format(periodFrom, 'yyyy-MM-dd''T''HH:mm')}"/>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Hasta</label>
+                    <input type="datetime-local" name="to" class="form-control"
+                           th:value="${#temporals.format(periodTo, 'yyyy-MM-dd''T''HH:mm')}"/>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-funnel me-1"></i>Aplicar rango
+                    </button>
+                </div>
+            </form>
+            <div class="row text-center">
+                <div class="col-md-6">
+                    <p class="mb-1 text-muted">Usuario mas activo en el periodo</p>
+                    <h4 th:if="${mostActiveUser}" th:text="${mostActiveUser}"></h4>
+                    <h4 th:if="${mostActiveUser == null}" class="text-muted">Sin actividad</h4>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1 text-muted">Monto total movilizado en el periodo</p>
+                    <h4 th:text="${#numbers.formatDecimal(totalInPeriod, 0, 'COMMA', 2, 'POINT')}"></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <!-- Top Billeteras por Uso -->
         <div class="col-md-6 mb-4">
@@ -157,6 +194,44 @@
                             </tr>
                             <tr th:if="${#lists.isEmpty(transferRelationships)}">
                                 <td colspan="2" class="text-center text-muted py-3">Sin datos</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Transacciones por Monto -->
+        <div class="col-md-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-cash-stack me-1"></i>Top Transacciones por Monto (PriorityQueue)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Monto</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="tx, iterStat : ${topTransactions}">
+                                <td th:text="${iterStat.count}"></td>
+                                <td th:text="${#temporals.format(tx.date, 'yyyy-MM-dd HH:mm')}"></td>
+                                <td><span class="badge bg-secondary" th:text="${tx.type}"></span></td>
+                                <td th:text="${#numbers.formatDecimal(tx.amount, 0, 'COMMA', 2, 'POINT')}"></td>
+                                <td><code th:text="${tx.sourceWalletCode}"></code></td>
+                                <td><code th:text="${tx.targetWalletCode}"></code></td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(topTransactions)}">
+                                <td colspan="6" class="text-center text-muted py-3">Sin datos</td>
                             </tr>
                             </tbody>
                         </table>

@@ -3,7 +3,9 @@ package com.uniquindio.fintech.service;
 import com.uniquindio.fintech.datastructures.graph.Graph;
 import com.uniquindio.fintech.datastructures.hash.HashTable;
 import com.uniquindio.fintech.datastructures.list.SimpleLinkedList;
+import com.uniquindio.fintech.datastructures.queue.PriorityQueue;
 import com.uniquindio.fintech.model.Transaction;
+import com.uniquindio.fintech.model.TransactionAmountEntry;
 import com.uniquindio.fintech.model.User;
 import com.uniquindio.fintech.model.Wallet;
 import com.uniquindio.fintech.model.enums.TransactionStatus;
@@ -167,6 +169,70 @@ public class AnalyticsService {
      */
     public boolean detectCyclesInTransfers() {
         return dataStore.getTransferGraph().hasCycles();
+    }
+
+    /**
+     * Retorna las transacciones de mayor valor del sistema usando una
+     * cola de prioridad propia como estructura ordenada.
+     * <p>Recorre todas las transacciones completadas, las inserta en una
+     * {@link PriorityQueue} envueltas en {@link TransactionAmountEntry}
+     * (ordenadas por monto descendente) y extrae las primeras según el
+     * límite indicado.</p>
+     *
+     * @param limit cantidad máxima de transacciones a retornar
+     * @return lista de transacciones ordenadas por monto descendente
+     */
+    public SimpleLinkedList<Transaction> getTopTransactionsByAmount(int limit) {
+        PriorityQueue<TransactionAmountEntry> pq = new PriorityQueue<>();
+        HashTable<String, Boolean> seen = new HashTable<>();
+        SimpleLinkedList<User> users = dataStore.getUsersById().values();
+        for (User u : users) {
+            for (Transaction tx : u.getTransactionHistory()) {
+                if (tx.getStatus() != TransactionStatus.COMPLETED) {
+                    continue;
+                }
+                if (seen.containsKey(tx.getId())) {
+                    continue;
+                }
+                pq.enqueue(new TransactionAmountEntry(tx));
+                seen.put(tx.getId(), true);
+            }
+        }
+        SimpleLinkedList<Transaction> result = new SimpleLinkedList<>();
+        for (int i = 0; i < limit && !pq.isEmpty(); i++) {
+            result.addLast(pq.dequeue().getTransaction());
+        }
+        return result;
+    }
+
+    /**
+     * Retorna el id del usuario con mayor cantidad de transacciones
+     * completadas dentro del rango de fechas indicado.
+     *
+     * @param from inicio del rango (inclusivo)
+     * @param to   fin del rango (inclusivo)
+     * @return id del usuario más activo en el período, o null si no hay actividad
+     */
+    public String getMostActiveUserInPeriod(LocalDateTime from,
+                                            LocalDateTime to) {
+        SimpleLinkedList<User> users = dataStore.getUsersById().values();
+        String bestUser = null;
+        int bestCount = 0;
+        for (User u : users) {
+            int count = 0;
+            for (Transaction tx : u.getTransactionHistory()) {
+                if (tx.getStatus() == TransactionStatus.COMPLETED
+                        && !tx.getDate().isBefore(from)
+                        && !tx.getDate().isAfter(to)) {
+                    count++;
+                }
+            }
+            if (count > bestCount) {
+                bestCount = count;
+                bestUser = u.getId();
+            }
+        }
+        return bestUser;
     }
 
     /**

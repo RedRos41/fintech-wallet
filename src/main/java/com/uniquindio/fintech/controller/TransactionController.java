@@ -2,6 +2,7 @@ package com.uniquindio.fintech.controller;
 
 import com.uniquindio.fintech.model.Transaction;
 import com.uniquindio.fintech.model.User;
+import com.uniquindio.fintech.model.enums.TransactionStatus;
 import com.uniquindio.fintech.model.enums.TransactionType;
 import com.uniquindio.fintech.service.ReversalService;
 import com.uniquindio.fintech.service.TransactionService;
@@ -90,7 +91,9 @@ public class TransactionController {
     }
 
     /**
-     * Ejecuta una transacción según el tipo seleccionado.
+     * Ejecuta una transacción según el tipo seleccionado y emite un mensaje
+     * flash específico según el tipo (depósito/retiro/transferencia) y el
+     * estado resultante (COMPLETED/REJECTED).
      *
      * @param type               tipo de transacción
      * @param sourceWalletCode   código de billetera origen
@@ -107,24 +110,27 @@ public class TransactionController {
             @RequestParam double amount,
             RedirectAttributes redirectAttributes) {
         try {
-            switch (TransactionType.valueOf(type)) {
+            TransactionType txType = TransactionType.valueOf(type);
+            Transaction tx;
+            switch (txType) {
                 case DEPOSIT:
-                    transactionService.depositToWallet(
+                    tx = transactionService.depositToWallet(
                             sourceWalletCode, amount);
                     break;
                 case WITHDRAWAL:
-                    transactionService.withdrawFromWallet(
+                    tx = transactionService.withdrawFromWallet(
                             sourceWalletCode, amount);
                     break;
                 case TRANSFER:
-                    transactionService.transferBetweenUsers(
+                    tx = transactionService.transferBetweenUsers(
                             sourceWalletCode, targetWalletCode, amount);
                     break;
                 default:
-                    break;
+                    redirectAttributes.addFlashAttribute("error",
+                            "Tipo de transacción no soportado: " + type);
+                    return "redirect:/transactions";
             }
-            redirectAttributes.addFlashAttribute("success",
-                    "Transaction executed successfully");
+            applyTransactionFlash(redirectAttributes, txType, tx, amount);
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
@@ -132,7 +138,8 @@ public class TransactionController {
     }
 
     /**
-     * Revierte la última operación de un usuario.
+     * Revierte la última operación de un usuario y emite un mensaje flash
+     * específico según el tipo de operación revertida.
      *
      * @param userId             cédula del usuario
      * @param redirectAttributes atributos flash para mensajes
@@ -145,7 +152,7 @@ public class TransactionController {
         try {
             Transaction reversed = reversalService.reverseLastOperation(userId);
             redirectAttributes.addFlashAttribute("success",
-                    "Transaction " + reversed.getId() + " reversed successfully");
+                    buildReversalMessage(userId, reversed));
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
@@ -153,9 +160,117 @@ public class TransactionController {
     }
 
     /**
-     * Recolecta todas las transacciones de todos los usuarios sin duplicados.
+     * Construye el mensaje específico para una reversión según el tipo
+     * de operación revertida, indicando los efectos concretos (devolución
+     * de saldos, reembolso de comisión y reversión de puntos).
+     */
+    private String buildReversalMessage(String userId, Transaction reversed) {
+        String formatted = String.format("$%,.2f", reversed.getAmount());
+        int points = reversed.getPointsGenerated();
+        switch (reversed.getType()) {
+            case DEPOSIT:
+                return "Depósito de " + formatted + " revertido. Se descontó "
+                        + formatted + " de la billetera. Puntos restados: -"
+                        + points + ".";
+            case WITHDRAWAL:
+                return "Retiro de " + formatted + " revertido. Se reintegró "
+                        + formatted + " a la billetera. Puntos restados: -"
+                        + points + ".";
+            case TRANSFER:
+                String commission = String.format("$%,.2f",
+                        reversed.getCommissionCharged());
+                return "Transferencia de " + formatted + " revertida. "
+                        + "Origen recibe " + formatted + " (incluye comisión "
+                        + commission + "). Destino devuelve el monto recibido. "
+                        + "Puntos restados al remitente: -" + points + ".";
+            case SCHEDULED_PAYMENT:
+                return "Pago programado de " + formatted
+                        + " revertido. Saldos y puntos del usuario " + userId
+                        + " actualizados.";
+            default:
+                return "Operación de " + formatted + " del usuario " + userId
+                        + " revertida exitosamente.";
+        }
+    }
+
+    /**
+     * Construye el flash message apropiado segun el tipo y el estado de la transacción.
+     */
+    private void applyTransactionFlash(RedirectAttributes ra,
+                                       TransactionType txType,
+                                       Transaction tx,
+                                       double amount) {
+        String formatted = String.format("$%,.2f", amount);
+        if (tx.getStatus() == TransactionStatus.COMPLETED) {
+            ra.addFlashAttribute("success",
+                    buildSuccessMessage(txType, tx, formatted));
+        } else if (tx.getStatus() == TransactionStatus.REJECTED) {
+            ra.addFlashAttribute("warning",
+                    buildRejectionMessage(txType, formatted, tx.getDescription()));
+        } else {
+            ra.addFlashAttribute("success",
+                    labelFor(txType) + " registrada con estado "
+                    + tx.getStatus() + ".");
+        }
+    }
+
+    private String buildSuccessMessage(TransactionType txType,
+                                       Transaction tx,
+                                       String formatted) {
+        switch (txType) {
+            case DEPOSIT:
+                return "Depósito de " + formatted
+                        + " acreditado en la billetera. Puntos ganados: +"
+                        + tx.getPointsGenerated() + ".";
+            case WITHDRAWAL:
+                return "Retiro de " + formatted
+                        + " ejecutado correctamente. Puntos ganados: +"
+                        + tx.getPointsGenerated() + ".";
+            case TRANSFER:
+                String commission = String.format("$%,.2f",
+                        tx.getCommissionCharged());
+                return "Transferencia de " + formatted
+                        + " completada. Comisión: " + commission
+                        + ". Puntos ganados: +"
+                        + tx.getPointsGenerated() + ".";
+            default:
+                return "Transacción completada.";
+        }
+    }
+
+    private String buildRejectionMessage(TransactionType txType,
+                                         String formatted,
+                                         String reason) {
+        String motivo = (reason == null || reason.isBlank())
+                ? "no se pudo procesar la operación"
+                : reason;
+        switch (txType) {
+            case DEPOSIT:
+                return "Depósito de " + formatted + " RECHAZADO. " + motivo;
+            case WITHDRAWAL:
+                return "Retiro de " + formatted + " RECHAZADO. " + motivo;
+            case TRANSFER:
+                return "Transferencia de " + formatted + " RECHAZADA. " + motivo;
+            default:
+                return "Transacción rechazada. " + motivo;
+        }
+    }
+
+    private String labelFor(TransactionType type) {
+        switch (type) {
+            case DEPOSIT: return "Depósito";
+            case WITHDRAWAL: return "Retiro";
+            case TRANSFER: return "Transferencia";
+            case SCHEDULED_PAYMENT: return "Pago programado";
+            default: return "Operación";
+        }
+    }
+
+    /**
+     * Recolecta todas las transacciones de todos los usuarios sin duplicados,
+     * ordenadas por fecha descendente (la más reciente primero).
      *
-     * @return lista de transacciones únicas
+     * @return lista de transacciones únicas, más recientes arriba
      */
     private List<Transaction> collectAllTransactions() {
         List<Transaction> all = new ArrayList<>();
@@ -167,6 +282,7 @@ public class TransactionController {
                 }
             }
         }
+        all.sort((a, b) -> b.getDate().compareTo(a.getDate()));
         return all;
     }
 }

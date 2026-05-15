@@ -39,7 +39,10 @@ public class FraudDetectionService {
      *   <li>Más de 5 transacciones en el último minuto: riesgo ALTO</li>
      *   <li>Monto mayor a 3 veces el promedio del usuario: riesgo MEDIO</li>
      *   <li>Más de 3 transacciones al mismo destino en 5 minutos: riesgo ALTO</li>
-     *   <li>Transferencias a más de 3 billeteras distintas en 10 minutos: riesgo MEDIO</li>
+     *   <li>Transferencias a más de 3 destinos distintos en 10 minutos: riesgo MEDIO</li>
+     *   <li>Uso simultáneo de 3+ billeteras propias como origen en 10 minutos: riesgo ALTO</li>
+     *   <li>Cambio brusco de frecuencia: última hora supera 5x el ritmo histórico: riesgo MEDIO</li>
+     *   <li>Actividad en horario no habitual del usuario: riesgo MEDIO</li>
      * </ol></p>
      *
      * @param user        el usuario a analizar
@@ -53,6 +56,9 @@ public class FraudDetectionService {
         checkAmountAnomaly(user, transaction);
         checkRepeatedDestination(user, transaction);
         checkFragmentation(user, transaction);
+        checkSourceFragmentation(user, transaction);
+        checkFrequencyChange(user, transaction);
+        checkUnusualHour(user, transaction);
     }
 
     /**
@@ -170,6 +176,101 @@ public class FraudDetectionService {
                     "Fragmentación de transferencias",
                     destinations.size()
                     + " destinos distintos en 10 minutos");
+        }
+    }
+
+    /**
+     * Regla 5: uso simultáneo de 3+ billeteras propias del mismo usuario
+     * como origen en una ventana de 10 minutos (fragmentación de montos).
+     *
+     * @param user usuario a evaluar
+     * @param tx   transacción actual
+     */
+    private void checkSourceFragmentation(User user, Transaction tx) {
+        LocalDateTime tenMinAgo = tx.getDate().minusMinutes(10);
+        HashTable<String, Boolean> sources = new HashTable<>();
+        for (Transaction t : user.getTransactionHistory()) {
+            if (t.getStatus() == TransactionStatus.COMPLETED
+                    && !t.getDate().isBefore(tenMinAgo)
+                    && t.getSourceWalletCode() != null) {
+                sources.put(t.getSourceWalletCode(), true);
+            }
+        }
+        if (sources.size() >= 3) {
+            addAuditEvent(user, tx, RiskLevel.HIGH,
+                    "Fragmentación con varias billeteras propias",
+                    sources.size()
+                    + " billeteras propias usadas como origen en 10 minutos");
+        }
+    }
+
+    /**
+     * Regla 6: cambio brusco de frecuencia. Compara el ritmo de
+     * transacciones en la última hora contra el ritmo histórico
+     * de las 23 horas previas. Si la última hora supera más de 5 veces
+     * el ritmo histórico, se considera anómalo.
+     *
+     * @param user usuario a evaluar
+     * @param tx   transacción actual
+     */
+    private void checkFrequencyChange(User user, Transaction tx) {
+        LocalDateTime oneHourAgo = tx.getDate().minusHours(1);
+        LocalDateTime oneDayAgo = tx.getDate().minusDays(1);
+        int recentCount = 0;
+        int historicalCount = 0;
+        for (Transaction t : user.getTransactionHistory()) {
+            if (t.getStatus() != TransactionStatus.COMPLETED) {
+                continue;
+            }
+            if (!t.getDate().isBefore(oneHourAgo)) {
+                recentCount++;
+            } else if (!t.getDate().isBefore(oneDayAgo)) {
+                historicalCount++;
+            }
+        }
+        double historicalRatePerHour = historicalCount / 23.0;
+        if (historicalRatePerHour >= 0.5
+                && recentCount > historicalRatePerHour * 5) {
+            addAuditEvent(user, tx, RiskLevel.MEDIUM,
+                    "Cambio brusco en la frecuencia de transacciones",
+                    "Última hora: " + recentCount
+                    + " tx vs ritmo histórico "
+                    + String.format("%.2f", historicalRatePerHour) + " tx/h");
+        }
+    }
+
+    /**
+     * Regla 7: actividad en horario no habitual del usuario.
+     * Construye un histograma de horas (0–23) con las transacciones
+     * históricas y, si la hora actual representa menos del 5 % de la
+     * actividad, se marca como sospechosa. Requiere al menos 10
+     * transacciones históricas para evitar falsos positivos.
+     *
+     * @param user usuario a evaluar
+     * @param tx   transacción actual
+     */
+    private void checkUnusualHour(User user, Transaction tx) {
+        int[] hourCounts = new int[24];
+        int total = 0;
+        for (Transaction t : user.getTransactionHistory()) {
+            if (t == tx || t.getStatus() != TransactionStatus.COMPLETED) {
+                continue;
+            }
+            hourCounts[t.getDate().getHour()]++;
+            total++;
+        }
+        if (total < 10) {
+            return;
+        }
+        int currentHour = tx.getDate().getHour();
+        double ratio = (double) hourCounts[currentHour] / total;
+        if (ratio < 0.05) {
+            addAuditEvent(user, tx, RiskLevel.MEDIUM,
+                    "Actividad en horario no habitual",
+                    "Hora " + currentHour
+                    + " representa "
+                    + String.format("%.1f%%", ratio * 100)
+                    + " del historial del usuario");
         }
     }
 

@@ -69,6 +69,11 @@
                         <i class="bi bi-bell me-1"></i>Notificaciones
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/benchmark}">
+                        <i class="bi bi-speedometer me-1"></i>Benchmark
+                    </a>
+                </li>
             </ul>
         </div>
     </div>
@@ -79,6 +84,11 @@
     <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="bi bi-check-circle me-1"></i>
         <span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div th:if="${warning}" class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-1"></i>
+        <span th:text="${warning}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">

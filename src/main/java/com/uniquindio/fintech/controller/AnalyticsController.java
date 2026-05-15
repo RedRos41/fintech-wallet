@@ -1,19 +1,25 @@
 package com.uniquindio.fintech.controller;
 
+import com.uniquindio.fintech.model.Transaction;
 import com.uniquindio.fintech.service.AnalyticsService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Controlador para la visualización de analíticas y estadísticas.
  * <p>Reúne todos los reportes del sistema en una sola página:
  * billeteras más usadas, usuarios más activos, categorías,
- * frecuencia por tipo, relaciones de transferencia y ciclos.</p>
+ * frecuencia por tipo, relaciones de transferencia, ciclos,
+ * top de transacciones por monto y usuario más activo en período.</p>
  */
 @Controller
 @RequestMapping("/analytics")
@@ -34,10 +40,22 @@ public class AnalyticsController {
      * Muestra la página de analíticas con todos los reportes disponibles.
      *
      * @param model modelo de la vista
+     * @param from  inicio del rango (opcional, por defecto 30 días atrás)
+     * @param to    fin del rango (opcional, por defecto ahora)
      * @return nombre de la plantilla de analíticas
      */
     @GetMapping
-    public String analytics(Model model) {
+    public String analytics(Model model,
+                            @RequestParam(value = "from", required = false)
+                            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                            LocalDateTime from,
+                            @RequestParam(value = "to", required = false)
+                            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                            LocalDateTime to) {
+        LocalDateTime effectiveTo = (to != null) ? to : LocalDateTime.now();
+        LocalDateTime effectiveFrom = (from != null) ? from
+                : effectiveTo.minusDays(30);
+
         model.addAttribute("topWallets",
                 analyticsService.getTopWalletsByUsage(10).toJavaList());
         model.addAttribute("topUsers",
@@ -50,6 +68,21 @@ public class AnalyticsController {
                 analyticsService.getTransferRelationships().toJavaList());
         model.addAttribute("hasCycles",
                 analyticsService.detectCyclesInTransfers());
+
+        List<Transaction> topTx =
+                analyticsService.getTopTransactionsByAmount(10).toJavaList();
+        model.addAttribute("topTransactions", topTx);
+
+        String mostActive = analyticsService.getMostActiveUserInPeriod(
+                effectiveFrom, effectiveTo);
+        model.addAttribute("mostActiveUser", mostActive);
+        model.addAttribute("periodFrom", effectiveFrom);
+        model.addAttribute("periodTo", effectiveTo);
+
+        double total = analyticsService.getTotalAmountByDateRange(
+                effectiveFrom, effectiveTo);
+        model.addAttribute("totalInPeriod", total);
+
         return "analytics/index";
     }
 
